@@ -1,5 +1,12 @@
+ipykernel
+jupyter
 numpy 
 pandas 
 matplotlib
 scikit-learn
 xgboost
+optuna
+pydantic 
+fastapi
+uvicorn
+streamlit
