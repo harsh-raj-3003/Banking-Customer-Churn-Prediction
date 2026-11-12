@@ -1,0 +1,46 @@
+# Appearance for the churn check page. One locked look, so the page is the same for every viewer.
+#
+# Colour split, 60 / 30 / 10:
+#   60%  white and soft off-white   (#FFFFFF, #F8F9FA)  page and panel surfaces
+#   30%  deep navy                  (#0F172A)           headings, body text
+#   10%  electric cyan              (#0369A1, #00A8E8)  buttons, links, the score bar
+#
+# No web font is downloaded. The page uses the fonts that the viewer already has, so the first
+# paint does not wait on the network.
+
+[theme]
+base = "light"
+primaryColor = "#0369A1"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F8F9FA"
+textColor = "#0F172A"
+linkColor = "#0077B6"
+borderColor = "#E2E8F0"
+codeBackgroundColor = "#F1F5F9"
+codeTextColor = "#0F172A"
+grayColor = "#64748B"
+blueColor = "#00A8E8"
+greenColor = "#15803D"
+redColor = "#B91C1C"
+yellowColor = "#A16207"
+orangeColor = "#C2410C"
+violetColor = "#6D28D9"
+showWidgetBorder = true
+showSidebarBorder = true
+baseRadius = "10px"
+buttonRadius = "10px"
+baseFontSize = 15
+baseFontWeight = 400
+headingFontSizes = ["34px", "26px", "21px", "18px", "16px", "14px"]
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+metricValueFontSize = "34px"
+metricValueFontWeight = 600
+linkUnderline = false
+paddingTop = "3rem"
+
+[theme.sidebar]
+backgroundColor = "#F8F9FA"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#0F172A"
+borderColor = "#E2E8F0"
+primaryColor = "#0369A1"

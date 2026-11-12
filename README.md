@@ -149,10 +149,10 @@ The request has these fields:
 | `credit_score` | integer | 300 to 850 |
 | `geography` | text | `France`, `Germany`, `Spain` |
 | `gender` | text | `Female`, `Male` |
-| `age` | integer | 18 to 100 |
-| `tenure` | integer | 0 to 10 |
+| `age` | integer | 18 to 120 |
+| `tenure` | integer | 0 or more |
 | `balance` | number | 0 or more |
-| `num_of_products` | integer | 1 to 4 |
+| `num_of_products` | integer | 1 or more |
 | `has_cr_card` | boolean | `true`, `false` |
 | `is_active_member` | boolean | `true`, `false` |
 | `estimated_salary` | number | 0 or more |

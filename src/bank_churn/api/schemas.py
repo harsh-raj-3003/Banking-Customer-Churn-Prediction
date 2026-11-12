@@ -25,13 +25,13 @@ class Gender(str, Enum):
 class CustomerFeatures(BaseModel):
     """One customer, with the ranges observed in the training data."""
 
-    credit_score: int = Field(ge=300, le=850, description="Credit score (300-850)")
+    credit_score: int = Field(ge=300, le=850, description="Credit score (the standard scale is 300-850)")
     geography: Geography = Field(description="Country of the customer")
     gender: Gender = Field(description="Gender of the customer")
-    age: int = Field(ge=18, le=100, description="Age in years")
-    tenure: int = Field(ge=0, le=10, description="Years with the bank")
+    age: int = Field(ge=18, le=120, description="Age in years")
+    tenure: int = Field(ge=0, description="Years with the bank")
     balance: float = Field(ge=0, description="Account balance")
-    num_of_products: int = Field(ge=1, le=4, description="Number of bank products")
+    num_of_products: int = Field(ge=1, description="Number of bank products")
     has_cr_card: bool = Field(description="Has a credit card")
     is_active_member: bool = Field(description="Is an active member")
     estimated_salary: float = Field(ge=0, description="Estimated salary")

@@ -1,11 +1,10 @@
-"""Streamlit frontend for churn scoring.
+"""Churn check page.
 
 Run it with:
-    .venv/Scripts/python.exe -m streamlit run src/bank_churn/ui/app.py
+    PYTHONPATH=src .venv/Scripts/python.exe -m streamlit run src/bank_churn/ui/app.py
 
-The page reads the dataset summary from `data/processed/churn_processed.csv`, takes a
-customer through a form, and asks the FastAPI service for a score. Until study 3 supplies
-the model, the service answers 503 and the page says so.
+The page shows one customer form, checks the values with the same model the service uses, and
+shows the result in plain words.
 """
 
 from __future__ import annotations
@@ -16,11 +15,25 @@ import urllib.error
 import urllib.request
 
 import streamlit as st
+from pydantic import ValidationError
 
-from bank_churn.config.settings import DECISION_THRESHOLD, GENDERS, GEOGRAPHIES
-from bank_churn.data.loader import churn_summary, processed_exists
+from bank_churn.api.schemas import CustomerFeatures
+from bank_churn.config.settings import GENDERS, GEOGRAPHIES
 
 DEFAULT_API_URL = os.environ.get("CHURN_API_URL", "http://127.0.0.1:8000")
+
+FIELD_LABELS = {
+    "credit_score": "Credit score",
+    "geography": "Country",
+    "gender": "Gender",
+    "age": "Age",
+    "tenure": "Years as a customer",
+    "balance": "Account balance",
+    "num_of_products": "Number of products",
+    "has_cr_card": "Has a credit card",
+    "is_active_member": "Active member",
+    "estimated_salary": "Estimated salary",
+}
 
 
 def call_api(base_url: str, path: str, payload: dict | None = None, timeout: float = 10.0) -> tuple[int, dict]:
@@ -43,139 +56,206 @@ def call_api(base_url: str, path: str, payload: dict | None = None, timeout: flo
         except json.JSONDecodeError:
             return exc.code, {"detail": body}
     except urllib.error.URLError as exc:
-        return 0, {"detail": f"API not reachable at {url}: {exc.reason}"}
+        return 0, {"detail": f"no connection to {url}: {exc.reason}"}
+
+
+def describe_error(error: dict) -> str:
+    """Turn one pydantic error into a sentence that a user can act on."""
+    kind = error.get("type", "")
+    ctx = error.get("ctx") or {}
+    if kind == "greater_than_equal":
+        return f"must be {ctx.get('ge')} or more."
+    if kind == "greater_than":
+        return f"must be more than {ctx.get('gt')}."
+    if kind == "less_than_equal":
+        return f"must be {ctx.get('le')} or less."
+    if kind == "less_than":
+        return f"must be less than {ctx.get('lt')}."
+    if kind in {"int_type", "int_parsing", "int_from_float"}:
+        return "must be a whole number."
+    if kind in {"float_type", "float_parsing"}:
+        return "must be a number."
+    if kind in {"enum", "literal_error"}:
+        return "must be one of the values that the list shows."
+    if kind == "missing":
+        return "is necessary."
+    return str(error.get("msg", "is not correct."))
+
+
+def validate_payload(payload: dict) -> tuple[dict | None, list[str]]:
+    """Check the values with the request model of the service. Returns the clean body and the problems."""
+    try:
+        customer = CustomerFeatures(**payload)
+    except ValidationError as exc:
+        problems = [
+            f"**{FIELD_LABELS.get(str(error['loc'][0]), str(error['loc'][0]))}** {describe_error(error)}"
+            for error in exc.errors()
+        ]
+        return None, problems
+    return customer.model_dump(mode="json"), []
 
 
 def render_sidebar() -> str:
-    """Dataset facts on the left, API location and status at the bottom."""
+    """Address of the scoring service and a button that checks it."""
     with st.sidebar:
-        st.header("Dataset")
-        if processed_exists():
-            summary = churn_summary()
-            st.metric("Customers", f"{summary['rows']:,}")
-            st.metric("Churn rate", f"{summary['churn_rate']:.2%}")
-            st.caption(f"{summary['churned']:,} customers left the bank")
-        else:
-            st.warning("Processed dataset missing. Run the notebooks first.")
-
-        st.divider()
-        st.header("API")
-        base_url = st.text_input("Base URL", value=DEFAULT_API_URL)
-        if st.button("Check API", use_container_width=True):
+        st.subheader("Service connection", icon=":material/settings_ethernet:")
+        base_url = st.text_input(
+            "Service address",
+            value=DEFAULT_API_URL,
+            key="base_url",
+            help="Leave this value as it is, unless your administrator gives you an other address.",
+        )
+        if st.button("Check API", icon=":material/wifi_find:", width="stretch", key="check_api"):
             code, body = call_api(base_url, "/health")
-            if code == 200:
-                st.success("API reachable")
-                st.json(body)
+            if code == 200 and body.get("model_ready"):
+                st.success("Connected and ready", icon=":material/check_circle:")
+            elif code == 200:
+                st.warning("Connected, but not ready to score", icon=":material/hourglass_empty:")
+            elif code == 0:
+                st.error("No answer from the service", icon=":material/cloud_off:")
             else:
-                st.error(body.get("detail", "no response"))
-        st.caption(f"Operating cut-off: {DECISION_THRESHOLD:.2f}")
+                st.error(f"The service answered with status {code}", icon=":material/error:")
+        st.caption("Start the service before you use this page.")
     return base_url
 
 
 def render_form() -> dict | None:
-    """Collect one customer. Returns the payload when the user submits."""
+    """Collect one customer. Returns the raw values when the user submits."""
     with st.form("customer"):
-        left, right = st.columns(2)
+        with st.container(border=True):
+            st.subheader("Customer", icon=":material/person:")
+            left, right = st.columns(2)
 
-        with left:
-            credit_score = st.number_input("Credit score", 300, 850, 650)
-            geography = st.selectbox("Country", GEOGRAPHIES)
-            gender = st.selectbox("Gender", GENDERS)
-            age = st.number_input("Age", 18, 100, 40)
-            tenure = st.number_input("Tenure (years)", 0, 10, 5)
+            with left:
+                credit_score = st.number_input("Credit score", value=650, step=1)
+                age = st.number_input("Age", value=40, step=1)
+                tenure = st.number_input("Years as a customer", value=5, step=1)
 
-        with right:
-            balance = st.number_input("Balance", 0.0, 300000.0, 75000.0, step=1000.0)
-            num_of_products = st.number_input("Number of products", 1, 4, 1)
-            has_cr_card = st.checkbox("Has a credit card", value=True)
-            is_active_member = st.checkbox("Is an active member", value=True)
-            estimated_salary = st.number_input(
-                "Estimated salary", 0.0, 250000.0, 100000.0, step=1000.0
-            )
+            with right:
+                geography = st.segmented_control(
+                    "Country", GEOGRAPHIES, default=GEOGRAPHIES[0], key="country",
+                )
+                gender = st.segmented_control(
+                    "Gender", GENDERS, default=GENDERS[0], key="gender",
+                )
 
-        submitted = st.form_submit_button("Predict churn risk", type="primary")
+        with st.container(border=True):
+            st.subheader("Account", icon=":material/account_balance:")
+            left, right = st.columns(2)
+
+            with left:
+                balance = st.number_input("Account balance", value=75000.0, step=1000.0)
+                num_of_products = st.number_input("Number of products", value=1, step=1)
+
+            with right:
+                estimated_salary = st.number_input("Estimated salary", value=100000.0, step=1000.0)
+                has_cr_card = st.toggle("Has a credit card", value=True)
+                is_active_member = st.toggle("Active member", value=True)
+
+        submitted = st.form_submit_button(
+            "Check churn risk",
+            type="primary",
+            width="stretch",
+            icon=":material/person_search:",
+            key="submit",
+        )
 
     if not submitted:
         return None
 
     return {
-        "credit_score": int(credit_score),
+        "credit_score": credit_score,
         "geography": geography,
         "gender": gender,
-        "age": int(age),
-        "tenure": int(tenure),
-        "balance": float(balance),
-        "num_of_products": int(num_of_products),
-        "has_cr_card": bool(has_cr_card),
-        "is_active_member": bool(is_active_member),
-        "estimated_salary": float(estimated_salary),
+        "age": age,
+        "tenure": tenure,
+        "balance": balance,
+        "num_of_products": num_of_products,
+        "has_cr_card": has_cr_card,
+        "is_active_member": is_active_member,
+        "estimated_salary": estimated_salary,
     }
 
 
 def render_result(base_url: str, payload: dict) -> None:
-    """Send the customer to the API and show whatever comes back."""
-    code, body = call_api(base_url, "/predict", payload)
+    """Send the customer to the service and show the answer in plain words."""
+    with st.spinner("Checking the customer"):
+        code, body = call_api(base_url, "/predict", payload)
 
     if code == 200:
-        probability = body["churn_probability"]
-        left, right = st.columns(2)
-        left.metric("Churn probability", f"{probability:.1%}")
-        right.metric("Decision at cut-off", "at risk" if body["churn_flag"] else "likely to stay")
-        st.progress(min(max(probability, 0.0), 1.0))
-        st.caption(
-            f"cut-off {body['threshold']:.2f} | model {body['model_version']}"
-        )
+        probability = float(body["churn_probability"])
+        at_risk = bool(body["churn_flag"])
+        with st.container(border=True):
+            st.subheader("Result", icon=":material/assignment_turned_in:")
+            st.metric("Chance of leaving", f"{probability:.0%}")
+            st.progress(probability)
+            if at_risk:
+                st.warning(
+                    "Contact this customer. Offer a reason to stay.",
+                    title="At risk",
+                    icon=":material/warning:",
+                )
+            else:
+                st.success(
+                    "No action is necessary for this customer.",
+                    title="Low risk",
+                    icon=":material/check_circle:",
+                )
+        st.caption("The result is a guide. Speak to the customer before you act on it.")
         return
 
     if code == 503:
         st.info(
-            body.get("detail", "Model not trained yet.")
-            + " The API contract is ready: the score appears once study 3 "
-            "saves the fitted model."
+            "The service is not ready to score. Ask your administrator to start it, then try again.",
+            title="Service not ready",
+            icon=":material/hourglass_empty:",
         )
         return
 
-    st.error(body.get("detail", f"request failed with status {code}"))
+    if code == 0:
+        st.error(
+            "The page cannot reach the service. Check the address in the sidebar and select Check API.",
+            title="No connection",
+            icon=":material/cloud_off:",
+        )
+        return
+
+    st.error(
+        f"The service did not accept the request. Status {code}.",
+        title="Request failed",
+        icon=":material/error:",
+    )
 
 
 def main() -> None:
-    st.set_page_config(page_title="Bank Churn Risk", page_icon="🏦", layout="wide")
-    st.title("Bank customer churn risk")
+    st.set_page_config(
+        page_title="Customer churn check",
+        page_icon=":material/person_search:",
+        layout="centered",
+    )
+    st.title("Customer churn check", icon=":material/person_search:")
     st.caption(
-        "Enter one customer and get the probability that they leave. "
-        "Built on the tuned XGBoost model from this project."
+        "Enter the details of one customer and select Check churn risk. "
+        "The page shows the chance that this customer leaves the bank."
     )
 
     base_url = render_sidebar()
 
-    tab_form, tab_about = st.tabs(["Score a customer", "About the model"])
-    with tab_form:
-        payload = render_form()
-        if payload is not None:
-            render_result(base_url, payload)
-        else:
-            st.caption("Fill the form and press Predict.")
+    payload = render_form()
+    if payload is None:
+        st.caption("The result appears here.")
+        return
 
-    with tab_about:
-        st.subheader("How the score is produced")
-        st.markdown(
-            """
-- **Model:** XGBoost, tuned with Optuna on an F2 objective (recall weighted twice precision).
-- **Features:** the 14 columns in `FEATURE_ORDER`, including the engineered `ZeroBalance`.
-- **Cut-off:** chosen for the retention budget, not the statistical optimum; see `FINDINGS.md`.
-- **Status:** the fitted model is pending study 3, so the API answers 503 for now.
-            """
+    clean, problems = validate_payload(payload)
+    if clean is None:
+        st.error(
+            "\n".join(f"- {problem}" for problem in problems),
+            title="Check these details",
+            icon=":material/edit_note:",
         )
-        st.subheader("Strongest churn signals")
-        st.markdown(
-            """
-1. Number of products (3-4 products churn far more)
-2. Age (churners are older)
-3. Active membership
-4. Country (Germany churns about twice as often as France or Spain)
-5. Zero balance (a *lower* risk segment)
-            """
-        )
+        return
+
+    render_result(base_url, clean)
 
 
 if __name__ == "__main__":
