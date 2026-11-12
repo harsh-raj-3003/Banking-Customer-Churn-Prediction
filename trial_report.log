@@ -1,0 +1,62 @@
+train (8000, 14) | test (2000, 14) | n_estimators = 500 | folds = 5
+churn rate: train 0.2037 | test 0.2035
+  s2-t19 | raw thr 0.187 F2 0.6989 | calibrated thr 0.143 F2 0.6989
+  s2-t25 | raw thr 0.143 F2 0.6977 | calibrated thr 0.154 F2 0.6977
+  s2-t12 | raw thr 0.155 F2 0.6903 | calibrated thr 0.150 F2 0.6903
+  s2-t14 | raw thr 0.295 F2 0.6962 | calibrated thr 0.144 F2 0.6962
+  s2-t24 | raw thr 0.228 F2 0.6982 | calibrated thr 0.182 F2 0.6982
+  s3-t28 | raw thr 0.219 F2 0.6947 | calibrated thr 0.144 F2 0.6947
+  s3-t21 | raw thr 0.258 F2 0.6962 | calibrated thr 0.163 F2 0.6962
+  s3-t25 | raw thr 0.333 F2 0.6952 | calibrated thr 0.197 F2 0.6952
+  s3-t2 | raw thr 0.395 F2 0.6995 | calibrated thr 0.145 F2 0.6995
+  s3-t6 | raw thr 0.444 F2 0.6856 | calibrated thr 0.139 F2 0.6856
+
+=== confusion report (test rows, cut-off from out-of-fold F2) ===
+     config   study    variant    thr  oof_f2  recall  precision     f2  roc_auc  pr_auc   tn  fp  fn  tp  cost  cost_at_0.30
+ensemble-10     all calibrated 0.1440  0.7074  0.8452     0.4155 0.7003   0.8687  0.7195 1109 484  63 344 736.0         718.0
+      s3-t2 study 3 calibrated 0.1450  0.7006  0.8624     0.3984 0.6995   0.8665  0.7156 1063 530  56 351 754.0         724.0
+     s2-t19 study 2 calibrated 0.1429  0.7057  0.8428     0.4153 0.6989   0.8703  0.7194 1110 483  64 343 739.0         711.0
+     s2-t24 study 2 calibrated 0.1818  0.7049  0.8378     0.4189 0.6982   0.8698  0.7194 1120 473  66 341 737.0         726.0
+     s2-t25 study 2 calibrated 0.1538  0.7042  0.8428     0.4133 0.6977   0.8703  0.7185 1106 487  64 343 743.0         698.0
+     s2-t14 study 2 calibrated 0.1437  0.7006  0.8354     0.4177 0.6962   0.8693  0.7180 1119 474  67 340 742.0         720.0
+     s3-t21 study 3 calibrated 0.1627  0.7040  0.8378     0.4153 0.6962   0.8678  0.7169 1113 480  66 341 744.0         710.0
+     s3-t25 study 3 calibrated 0.1969  0.7021  0.8182     0.4342 0.6952   0.8631  0.7125 1159 434  74 333 730.0         717.0
+     s3-t28 study 3 calibrated 0.1439  0.7028  0.8452     0.4057 0.6947   0.8675  0.7175 1089 504  63 344 756.0         713.0
+     s2-t12 study 2 calibrated 0.1500  0.7049  0.8575     0.3878 0.6903   0.8683  0.7191 1042 551  58 349 783.0         711.0
+      s3-t6 study 3 calibrated 0.1394  0.6955  0.8821     0.3626 0.6856   0.8621  0.7100  962 631  48 359 823.0         741.0
+ensemble-10     all        raw 0.2925  0.7023  0.8329     0.4286 0.7007   0.8683  0.7188 1141 452  68 339 724.0         729.0
+      s3-t2 study 3        raw 0.3952  0.7006  0.8624     0.3984 0.6995   0.8665  0.7156 1063 530  56 351 754.0         853.0
+     s2-t19 study 2        raw 0.1874  0.7057  0.8428     0.4153 0.6989   0.8703  0.7194 1110 483  64 343 739.0         674.0
+     s2-t24 study 2        raw 0.2279  0.7049  0.8378     0.4189 0.6982   0.8698  0.7194 1120 473  66 341 737.0         690.0
+     s2-t25 study 2        raw 0.1433  0.7042  0.8428     0.4133 0.6977   0.8703  0.7185 1106 487  64 343 743.0         712.0
+     s2-t14 study 2        raw 0.2947  0.7006  0.8354     0.4177 0.6962   0.8693  0.7180 1119 474  67 340 742.0         739.0
+     s3-t21 study 3        raw 0.2582  0.7040  0.8378     0.4153 0.6962   0.8678  0.7169 1113 480  66 341 744.0         714.0
+     s3-t25 study 3        raw 0.3334  0.7021  0.8182     0.4342 0.6952   0.8631  0.7125 1159 434  74 333 730.0         735.0
+     s3-t28 study 3        raw 0.2187  0.7028  0.8452     0.4057 0.6947   0.8675  0.7175 1089 504  63 344 756.0         701.0
+     s2-t12 study 2        raw 0.1552  0.7049  0.8575     0.3878 0.6903   0.8683  0.7191 1042 551  58 349 783.0         695.0
+      s3-t6 study 3        raw 0.4443  0.6955  0.8821     0.3626 0.6856   0.8621  0.7100  962 631  48 359 823.0         978.0
+
+best F2      : ensemble-10 (raw) | cut-off 0.292 | recall 0.8329 | precision 0.4286 | F2 0.7007 | cost 724
+lowest cost  : ensemble-10 (raw) | recall 0.8329 | precision 0.4286 | cost 724
+
+confusion matrix of ensemble-10 (raw) at 0.293:
+                 pred: stayed  pred: churned
+actual: stayed           1141            452
+actual: churned            68            339
+              precision    recall  f1-score   support
+
+  stayed (0)      0.944     0.716     0.814      1593
+ churned (1)      0.429     0.833     0.566       407
+
+    accuracy                          0.740      2000
+   macro avg      0.686     0.775     0.690      2000
+weighted avg      0.839     0.740     0.764      2000
+
+average over configurations by variant:
+                f2  recall  precision      cost
+variant                                        
+calibrated  0.6957  0.8461     0.4077  753.3636
+raw         0.6957  0.8450     0.4089  752.2727
+
+saved: C:\Data Science Projects\Bank Churn Modelling\artifacts\trial_report.csv
+EXIT:0
